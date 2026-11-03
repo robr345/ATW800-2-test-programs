@@ -1,0 +1,22 @@
+ 
+rm *.tco
+rm *.lku
+rm *.cfb
+rm *.btl
+
+echo "Compiling files..."
+icc /t5 master
+icc /t8 worker
+
+echo "Linking files..."
+ilink /f startup.lnk master.tco /t5 /o master.lku
+ilink /f startrd.lnk worker.tco /t8 /o worker.lku 
+
+echo "Running Config..."
+icconf multi.cfs
+
+echo "Running Collect..."
+icollect  multi.cfb
+
+ls -l *.btl
+

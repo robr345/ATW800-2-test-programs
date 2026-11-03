@@ -1,0 +1,92 @@
+/*
+  -- MODULE: Configuration script file for a simple two processor program
+  --
+  -- NAME : Richard Onyett (RTC, Santa Clara)
+  --
+  -- PURPOSE:
+  --   To configure (using INMOS C configuration language) the
+  --   UPPER CASE program.
+  */
+  /*
+  --
+  -- Declare all of the physical hardware in the system. We have
+  -- 1 x T425 and 1 x T805 TRAMSs.
+  --
+  */
+  T425 (memory = 4M) Root ;
+  T805 (memory = 4M) Slave;
+  /*
+  --
+  -- Tell the world how these two are intimately bonded
+  --
+  */
+  connect Root.link[0], host;
+  connect Root.link[1], Slave.link[3];
+  /*
+  --
+  -- Describe the interface between our processes
+  -- */
+/*
+-- Master task
+--						       -----------
+--					fs -----> |           | -----> ToWorker
+--					          |	          |
+--					ts <----- |	          | <----- FromWorker
+--			                   ------------
+--
+*/
+process (stacksize = 1k, heapsize = 50k,
+        interface ( input fs, output ts,
+        input FromWorker, output ToWorker )) Master;
+
+/*
+-- Worker/Slave task
+--                               --------
+--            FromMaster -----> |        |
+--                              |        |
+--            ToMaster   <----- |        |
+--                               --------
+--
+--  */
+process (stacksize = 1k, heapsize = 50k,
+        interface ( input FromMaster, output ToMaster )) Worker;
+/*
+--
+-- Describe how things are wired up
+--
+*/
+input   from_host;
+output  to_host ;
+connect Master.fs, from_host;
+connect Master.ts, to_host;
+connect Master.ToWorker,   Worker.FromMaster;
+connect Master.FromWorker, Worker.ToMaster  ;
+/*
+--
+-- Pull in the "real code"
+--
+*/
+use "master.lku" for Master;
+use "worker.lku" for Worker;
+/*
+  --
+  -- Place the processES onto processORS
+  --
+  */
+  place Master on Root;   /* Run Master on the first transputer  */
+  place Worker on Slave;  /* Run Worker on the second transputer */
+  place from_host on host;        /* Wire up to the HOST machine */
+  place to_host   on host;
+  place Master.fs on Root.link[0];
+  place Master.ts on Root.link[0];
+  /*
+  --
+  -- Configured for ATW800/2
+  --
+  */
+  place Master.ToWorker   on Root.link[1];
+  place Master.FromWorker on Root.link[1];
+  place Worker.ToMaster   on Slave.link[3];
+  place Worker.FromMaster on Slave.link[3];
+  
+  
